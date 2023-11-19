@@ -1,6 +1,6 @@
-[![MacOS](https://github.com/princefr/giskard_entry/actions/workflows/mac.yml/badge.svg)](https://github.com/princefr/giskard_entry/actions/workflows/mac.yml)
-[![Ubuntu](https://github.com/princefr/giskard_entry/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/princefr/giskard_entry/actions/workflows/ubuntu.yml)
-[![Windows](https://github.com/princefr/giskard_entry/actions/workflows/windows.yml/badge.svg)](https://github.com/princefr/giskard_entry/actions/workflows/windows.yml)
+[![MacOS](https://github.com/princefr/giskard_job_interview/actions/workflows/mac.yml/badge.svg)](https://github.com/princefr/giskard_job_interview/actions/workflows/mac.yml)
+[![Ubuntu](https://github.com/princefr/giskard_job_interview/actions/workflows/ubuntu.yml/badge.svg)](https://github.com/princefr/giskard_job_interview/actions/workflows/ubuntu.yml)
+[![Windows](https://github.com/princefr/giskard_job_interview/actions/workflows/windows.yml/badge.svg)](https://github.com/princefr/giskard_job_interview/actions/workflows/windows.yml)
 
 # https://github.com/lioncowlionant/developer-test 
 ## Giskard test entry

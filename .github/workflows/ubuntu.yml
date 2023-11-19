@@ -1,0 +1,36 @@
+name: Ubuntu
+run-name: Ubuntu
+on: [push]
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - uses: actions-rs/toolchain@v1
+              with:
+                toolchain: stable
+            - name: navigate to server
+              run: |
+                cd server
+                ls
+            - uses: actions-rs/cargo@v1
+              with:
+                command: test
+                args: --manifest-path=server/Cargo.toml
+
+                
+
+    build_linux:
+        needs: [test]
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - name: 🔥 install program [Blazingly Fast]
+              run: |
+                chmod +x install.sh
+                ./install.sh
+            - name: 🔥 Run it [Blazingly Fast]
+              run: |
+                 give-me-the-odds example1/millennium-falcon.json example1/empire.json
+                
+    

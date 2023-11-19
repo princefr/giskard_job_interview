@@ -33,7 +33,6 @@ jobs:
                 $env:PATH += ";$env:USERPROFILE\.cargo\bin"
                 Get-ChildItem "$env:USERPROFILE\.cargo\bin"
                 Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-                .\give-me-the-odds.exe example1\millennium-falcon.json example1\empire.json
                 give-me-the-odds example1/millennium-falcon.json example1/empire.json
 
     

@@ -30,6 +30,8 @@ $ give-me-the-odds example1/millennium-falcon.json example1/empire.json
 0
 ```
 
+<span style="color:red">*** The rust installation didn't work for you? install rust from https://www.rust-lang.org/tools/install ***</span>
+
 ### How to run the server (in the server directory)
 If you followed the steps above, you can run the server or cargo run --bin server from the server directory
 ```

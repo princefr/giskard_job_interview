@@ -37,7 +37,7 @@ impl MileniumFalcon {
      * @param file: String
      * @return bool
      */
-    pub fn check_file(file: String) -> Result<bool, Box<dyn Error>> {
+    pub fn check_file(file: &String) -> Result<bool, Box<dyn Error>> {
         // {
         //     "autonomy": 6,
         //     "departure": "Tatooine",
@@ -65,7 +65,7 @@ impl MileniumFalcon {
      * @return MileniumFalcon
      */
     pub fn load_json(file: String) -> Result<MileniumFalcon, Box<dyn Error>> {
-        let _ = MileniumFalcon::check_file(file.clone())?;
+        let _ = MileniumFalcon::check_file(&file)?;
         let mut file = File::open(file)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
@@ -79,17 +79,16 @@ impl MileniumFalcon {
      * @param empire: Empire
      * @return Option<f64>
      */
-    pub fn chance_to_reach_destination(&self, routes: Vec<Route>, empire: Empire) -> Option<f64> {
+    pub fn chance_to_reach_destination(&self, routes: &Vec<Route>, empire: &Empire) -> Option<f64> {
         let count_down = empire.countdown;
-        let hunters = empire.bounty_hunters.clone();
-        let all_routes = Route::find_all_routes_leading_to_destination(routes, self.departure.clone(), self.arrival.clone());
+        let all_routes = Route::find_all_routes_leading_to_destination(routes, &self.departure, &self.arrival);
         let itinaries_with_minus_fail_attemps = Route::remove_itinaries_with_travel_time_greater_than_countdown(all_routes, count_down);
-        let itinaries_with_fuel = Route::check_fuel(itinaries_with_minus_fail_attemps.clone(), self.autonomy);
-        let itinaries_with_wait = Route::add_wait_time_to_routes_until_destination(itinaries_with_fuel.clone(), count_down);
+        let itinaries_with_fuel = Route::check_fuel(&itinaries_with_minus_fail_attemps, self.autonomy);
+        let itinaries_with_wait = Route::add_wait_time_to_routes_until_destination(&itinaries_with_fuel, &count_down);
 
         let mut probabilities: Vec<f64> = Vec::new();
-        for itinary in itinaries_with_wait.clone() {
-            let encouter = Route::calculate_encouters_with_hunters(itinary.clone(), hunters.clone());
+        for itinary in itinaries_with_wait {
+            let encouter = Route::calculate_encouters_with_hunters(itinary, empire.bounty_hunters.clone());
             if encouter > 0  {
                 let prob = Route::calculate_reach_probability(encouter);
                 probabilities.push(prob); 
@@ -140,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_check_file() {
-        let valid = MileniumFalcon::check_file(String::from("millennium-falcon.json"));
+        let valid = MileniumFalcon::check_file(&String::from("millennium-falcon.json"));
         assert_eq!(valid.unwrap(), true);
     }
  
@@ -150,8 +149,8 @@ mod tests {
         let milenium_falcon = milenium_falcon.unwrap();
         let empire = Empire::load_json(String::from("empire.json"));
         let empire = empire.unwrap();
-        let routes = Route::load_routes_from_db(milenium_falcon.clone().routes_db.to_string());
-        let chance = milenium_falcon.chance_to_reach_destination(routes, empire);
+        let routes = Route::load_routes_from_db(&milenium_falcon.routes_db.to_string());
+        let chance = milenium_falcon.chance_to_reach_destination(&routes, &empire);
         assert_eq!(chance.unwrap(), 0.0);
     }
 
@@ -162,8 +161,8 @@ mod tests {
         let empire = Empire::load_json(String::from("empire.json"));
         let mut empire = empire.unwrap();
         empire.update_countdown(8);
-        let routes = Route::load_routes_from_db(milenium_falcon.clone().routes_db.to_string());
-        let chance = milenium_falcon.chance_to_reach_destination(routes, empire);
+        let routes = Route::load_routes_from_db(&milenium_falcon.routes_db.to_string());
+        let chance = milenium_falcon.chance_to_reach_destination(&routes, &empire);
         assert_eq!(chance.unwrap(), 81.0);
     }
 
@@ -174,8 +173,8 @@ mod tests {
         let empire = Empire::load_json(String::from("empire.json"));
         let mut empire = empire.unwrap();
         empire.update_countdown(9);
-        let routes = Route::load_routes_from_db(milenium_falcon.clone().routes_db.to_string());
-        let chance = milenium_falcon.chance_to_reach_destination(routes, empire);
+        let routes = Route::load_routes_from_db(&milenium_falcon.routes_db.to_string());
+        let chance = milenium_falcon.chance_to_reach_destination(&routes, &empire);
         assert_eq!(chance.unwrap(), 90.0);
     }
 
@@ -186,8 +185,8 @@ mod tests {
         let empire = Empire::load_json(String::from("empire.json"));
         let mut empire = empire.unwrap();
         empire.update_countdown(10);
-        let routes = Route::load_routes_from_db(milenium_falcon.clone().routes_db.to_string());
-        let chance = milenium_falcon.chance_to_reach_destination(routes, empire);
+        let routes = Route::load_routes_from_db(&milenium_falcon.routes_db.to_string());
+        let chance = milenium_falcon.chance_to_reach_destination(&routes, &empire);
         assert_eq!(chance.unwrap(), 100.0);
     }
 

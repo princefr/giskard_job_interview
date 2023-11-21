@@ -27,6 +27,12 @@ impl BountyHunter {
         }
     }
 
+    /*
+     * Calculate the number of encounters between bounty hunters and the rebel alliance
+     * @param itinaries: Vec<Itinary>
+     * @param bounty_hunters: Vec<BountyHunter>
+     * @return i32 
+     */
     pub fn calculate_bounty_hunter_encounters(itinaries: &Vec<Itinary>, bounty_hunters: Vec<BountyHunter>) -> i32 {
         let mut encounters: i32 = 0;
             for j in 0..itinaries.len() {

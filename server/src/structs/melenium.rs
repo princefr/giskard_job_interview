@@ -81,7 +81,6 @@ impl MileniumFalcon {
      */
     pub fn chance_to_reach_destination(&self, routes: &Vec<Route>, empire: &Empire) -> Option<f64> {
         let chance: f64 = Route::get_change_to_reach_endor(routes, &self.departure, &self.arrival, empire);
-
         return Some(chance)
     }
 

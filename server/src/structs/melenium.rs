@@ -80,33 +80,9 @@ impl MileniumFalcon {
      * @return Option<f64>
      */
     pub fn chance_to_reach_destination(&self, routes: &Vec<Route>, empire: &Empire) -> Option<f64> {
-        let count_down = empire.countdown;
-        let all_routes = Route::find_all_routes_leading_to_destination(routes, &self.departure, &self.arrival);
-        let itinaries_with_minus_fail_attemps = Route::remove_itinaries_with_travel_time_greater_than_countdown(all_routes, count_down);
-        let itinaries_with_fuel = Route::check_fuel(&itinaries_with_minus_fail_attemps, self.autonomy);
-        let itinaries_with_wait = Route::add_wait_time_to_routes_until_destination(&itinaries_with_fuel, &count_down);
+        let chance: f64 = Route::get_change_to_reach_endor(routes, &self.departure, &self.arrival, empire);
 
-        let mut probabilities: Vec<f64> = Vec::new();
-        for itinary in itinaries_with_wait {
-            let encouter = Route::calculate_encouters_with_hunters(itinary, empire.bounty_hunters.clone());
-            if encouter > 0  {
-                let prob = Route::calculate_reach_probability(encouter);
-                probabilities.push(prob); 
-            }else  {
-                probabilities.push(100.0);
-            }
-        }
-        if let Some(max) = probabilities.iter().cloned().fold(None, |max, value| {
-            match max {
-                None => Some(value),
-                Some(x) => Some(x.max(value))
-            }
-        }){
-            return Some(max);
-        }
-        else {
-            return Some(0.0);
-        }
+        return Some(chance)
     }
 
 

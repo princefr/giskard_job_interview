@@ -1,21 +1,20 @@
-use std::collections::HashMap;
 
-use crate::{database::sqlite::SQLite, enums::status::MeleniumStatus};
+
+use crate::{
+    database::sqlite::SQLite,
+    enums::itinary::Itinary,
+};
 use pathfinding::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use super::hunter::BountyHunter;
+use super::{empire::Empire, hunter::BountyHunter};
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Ord, PartialOrd)]
 pub struct Route {
     pub origin: String,      // Name of the origin planet. Cannot be null or empty.
     pub destination: String, // Name of the destination planet. Cannot be null or empty.
     pub travel_time: i32, // Number days needed to travel from one planet to the other. Must be strictly positive.
 }
-
-
-
-
 
 impl Route {
     /*
@@ -33,9 +32,6 @@ impl Route {
         }
     }
 
-
-    
-
     /*
      * Load routes from database
      * @param db: String
@@ -47,122 +43,56 @@ impl Route {
         routes.unwrap()
     }
 
-
-
     /*
-     * Check the spaceship has enough fuel to reach destination
-     * 
-     * @param Route: Vec<Vec<Route>>
-     * @param autonomy: i32
-     * @param countdown: i32
-     * @return Vec<Vec<Route>> with fuel added to the Route
+     * Calculate the full travel time
+     * @param itinaries: &[Itinary]
+     * @return i32
      */
-    pub fn check_fuel(routes: &Vec<Vec<Route>>, autonomy: i32) -> Vec<Vec<Route>> {
-        let mut _routes = Vec::new();
-
-        for i in 0..routes.len(){
-            let mut single_itinary = Vec::new();
-            let mut route = Route::new("".to_string(), "".to_string(), 0);
-            let mut current_autnomy = autonomy;
-            for j in 0..routes[i].len() {
-                if routes[i][j] != routes[i][routes[i].len() -1] {
-                    if current_autnomy - routes[i][j].travel_time == 0 {
-                        route.origin = routes[i][j].origin.clone();
-                        route.destination = routes[i][j].destination.clone();
-                        route.travel_time = routes[i][j].travel_time;
-                        single_itinary.push(route.clone());
-                        route.origin = format!("{}_{}", routes[i][j].destination.clone(), MeleniumStatus::Refueling);
-                        route.destination = format!("{}_{}", routes[i][j].destination.clone(), MeleniumStatus::Refueling);
-                        route.travel_time = 1;
-                        single_itinary.push(route.clone());
-                        current_autnomy = 6;
-                        if routes[i][j+1] != routes[i][routes[i].len() -1] {
-                            route.origin = routes[i][j+1].origin.clone();
-                            route.destination = routes[i][j+1].destination.clone();
-                            route.travel_time = routes[i][j+1].travel_time;
-                            single_itinary.push(route.clone());
-                        }
-                    }
-                    if !routes[i][j].origin.contains(MeleniumStatus::Refueling.to_string().as_str()) {
-                        current_autnomy -= routes[i][j].travel_time;
-                    }
-                }else{
-                    route.origin = routes[i][j].origin.clone();
-                    route.destination = routes[i][j].destination.clone();
-                    route.travel_time = routes[i][j].travel_time;
-                    single_itinary.push(route.clone());
+    pub fn calculate_full_travel_time(itinaries: &Vec<Itinary>) -> i32 {
+        let mut total_travel_time = 0;
+        for itinary in itinaries {
+            match itinary {
+                Itinary::Itinary(route) => {
+                    total_travel_time += route.travel_time;
+                }
+                Itinary::Fuel => {
+                    total_travel_time += 1;
+                }
+                Itinary::Wait => {
+                    total_travel_time += 1;
                 }
             }
-            _routes.push(single_itinary.clone());
         }
-        return _routes;
+        total_travel_time
     }
 
-
-
-
     /*
-     * Add wait time to routes until destination
-     * @param routes: Vec<Vec<Route>>
-     * @param countdown: i32
-     * @return Vec<Vec<Route>>
-     */
-    pub fn add_wait_time_to_routes_until_destination(best_routes: &Vec<Vec<Route>>, countdown: &i32) -> Vec<Vec<Route>> {
-        let mut all_routes: Vec<Vec<Route>> = Vec::new();
-        for i in 0..best_routes.len() {
-            let total_travel_time: i32 = best_routes[i].iter().map(|route| route.travel_time).sum() ;
-            if total_travel_time < *countdown {
-                let mut total_wait_time = countdown - total_travel_time ;
-                for _ in 0..total_wait_time {
-                    for j in 0..best_routes[i].clone().len() -1 {
-                        let mut _itinary = best_routes[i].clone();
-                        let refuel = format!("_{}", MeleniumStatus::Refueling);
-                        let remove_fuel_string = best_routes[i][j].clone().destination.replace(&refuel, "");
-                        let destination = format!("{}_{}", remove_fuel_string, MeleniumStatus::Waiting);
-                        let element = Route::new(MeleniumStatus::Waiting.to_string(), destination, 1);
-                        _itinary.insert(j+1, element);
-                        let f:i32 =_itinary.iter().map(|route| route.travel_time).sum();
-                        if f <= *countdown {
-                            all_routes.push(_itinary.clone());
-                        }
-                        
-                    }
-                    total_wait_time -= 1;
-
-                }
-            }else{
-                all_routes.push(best_routes[i].clone());
-            }
-        }
-        all_routes
-    }   
-
-
-    /*
-     * Find all routes leading to destination
+     * Get the change to reach endor
      * @param routes: Vec<Route>
      * @param origin: String
      * @param destination: String
+     * @param empire: &Empire
      * @return Vec<Vec<Route>>
      */
-    pub fn find_all_routes_leading_to_destination(
+    pub fn get_change_to_reach_endor(
         routes: &Vec<Route>,
         origin: &String,
         destination: &String,
-    ) -> Vec<Vec<Route>> {
+        empire: &Empire,
+    ) -> f64 {
         let mut graph: Vec<(String, Vec<String>)> = Vec::new();
         for route in routes {
             let origin_node = route.origin.to_string();
             let destination_node = route.destination.to_string();
-    
+
             if !graph.iter().any(|(node, _)| node == &origin_node) {
                 graph.push((origin_node.clone(), Vec::new()));
             }
-    
+
             if !graph.iter().any(|(node, _)| node == &destination_node) {
                 graph.push((destination_node.clone(), Vec::new()));
             }
-    
+
             if let Some((_, neighbors)) = graph.iter_mut().find(|(node, _)| node == &origin_node) {
                 neighbors.push(destination_node.clone());
             }
@@ -170,19 +100,26 @@ impl Route {
 
         let result = astar_bag_collect(
             &origin,
-            |node| graph.iter().filter(|(n, _)| n == *node).flat_map(|(_, neighbors)| neighbors).map(|n| (n, 0)).collect::<Vec<_>>(),
+            |node| {
+                graph
+                    .iter()
+                    .filter(|(n, _)| n == *node)
+                    .flat_map(|(_, neighbors)| neighbors)
+                    .map(|n| (n, 0))
+                    .collect::<Vec<_>>()
+            },
             |_| 0,
             |node| node == &destination,
         );
 
         let mut all_routes: Vec<Vec<Route>> = Vec::new();
         let all_nodes = result.clone().unwrap().0;
-        
+
         for i in 0..all_nodes.len() {
             let itinary = &all_nodes[i];
             let mut _routes = Vec::new();
-            for j in 0..itinary.len() -1 {
-                let route =routes
+            for j in 0..itinary.len() - 1 {
+                let route = routes
                     .iter()
                     .find(|&r| r.origin == *itinary[j] && r.destination == *itinary[j + 1])
                     .unwrap();
@@ -190,97 +127,80 @@ impl Route {
             }
             all_routes.push(_routes);
         }
-        all_routes
-    }
 
+        let mut graph_2: Vec<(i32, Vec<(f64, Vec<Itinary>)>)> = Vec::new();
+        for i in 0..all_routes.clone().len() {
 
-    /*
-     * Find the best itinary for the milenium falcon
-     * @param Route: Vec<Route>
-     * @param origin: String
-     * @param destination: String
-     * @return Vec<Route>
-     */
-    pub fn find_best_routes(
-        routes: &Vec<Route>,
-        origin: String,
-        destination: String,
-    ) -> Vec<Route> {
-        let mut graph = HashMap::new();
-        for route in routes {
-            graph.entry(route.origin.to_string())
-            .or_insert_with(Vec::new)
-            .push((route.destination.to_string(), route.travel_time));
-        }
-
-        let result = astar(
-            &origin,
-            |node| graph[node].iter().cloned(),
-            |_| 0,
-            |node| node == &destination,
-        );
-
-        let mut best_routes = Vec::new();
-        let mut route = Route::new("".to_string(), "".to_string(), 0);
-        let all_routes = result.clone().unwrap().0;
-        let total_travel_time = result.clone().unwrap().1;
-        if all_routes.len() > 2 {
-            for i in 0..all_routes.len() - 1 {
-                route.origin = all_routes[i].to_string();
-                route.destination = all_routes[i + 1].to_string();
-                route.travel_time = routes.clone()
-                    .iter()
-                    .find(|&r| r.origin == route.origin && r.destination == route.destination)
-                    .unwrap()
-                    .travel_time;
-                best_routes.push(route.clone());
+            let mut route: Vec<Itinary> = Vec::new();
+            for j in 0..all_routes[i].len() {
+                route.push(Itinary::Itinary(all_routes[i][j].clone()));
             }
-        }else{
-            route.origin = all_routes[0].to_string();
-            route.destination = all_routes[1].to_string();
-            route.travel_time = total_travel_time;
-            best_routes.push(route.clone());
-        }
-        best_routes
 
-    }
-
-
-    /*
-     * Calculate the total encouters with bounty hunters
-     * @param routes: Vec<Route>
-     * @param bounty_hunters: Vec<BountyHunter>
-     * @return i32
-     */
-    pub fn calculate_encouters_with_hunters(routes: Vec<Route>, bounty_hunters: Vec<BountyHunter>) -> i32 {
-        let mut total_encouters = 0;
-        for i in 0..routes.len() {
-            for j in 0..bounty_hunters.len() {
-                if routes[i].destination == bounty_hunters[j].planet && routes[i].travel_time == bounty_hunters[j].day {
-                    total_encouters += 1;
+            let mut current_autonomy = 6;
+            for i in 0..route.clone().len() {
+                if route.clone()[i] != route.clone().last().unwrap().clone() {
+                    match route.clone()[i].clone() {
+                        Itinary::Itinary(_rr) => {
+                            if current_autonomy - _rr.travel_time == 0 {
+                                route.insert(i+1, Itinary::Fuel);
+                                current_autonomy = 6;
+                            }
+                            current_autonomy -= _rr.travel_time;
+                        }
+                        _ => {}
+                    }
                 }
-
-                //TODO: check if the milenium falcon is in the same planet as the bounty hunter with waits and fuels
-                if routes[i].origin == routes[i].destination && routes[i-1].travel_time + routes[i].travel_time == bounty_hunters[j].day {
-                    total_encouters += 1;
-                }
+                let total_travel = Route::calculate_full_travel_time(&route);
+                graph_2.push((total_travel, vec![(0.0, route.clone())]));
             }
+
+            
+
+
+            
+
+
+            for x in 0..route.len() - 1 {
+                let mut cloned_route = route.clone();
+                cloned_route.insert(x, Itinary::Wait);
+                let total_travel = Route::calculate_full_travel_time(&cloned_route.clone());
+                graph_2.push((total_travel, vec![(0.0, cloned_route.clone())]));
+                
+            }
+
+
+
+            
+            let _ = graph_2.iter_mut().filter(|(node, _)| node == &empire.countdown).flat_map(|(c, x)| x).map(|neighbor| {
+                let encouter = BountyHunter::calculate_bounty_hunter_encounters(
+                    &neighbor.1,
+                    empire.bounty_hunters.clone(),
+                );
+
+                if encouter > 0 {
+                    let prob = Route::calculate_reach_probability(encouter);
+                    neighbor.0 = prob;
+                }else{
+                    neighbor.0 = 100.0;
+                } 
+            }).collect::<Vec<_>>();
         }
-        total_encouters
+
+
+        
+        let result = graph_2
+            .iter()
+            .filter(|(node, _)| node == &empire.countdown)
+            .flat_map(|(_, neighbors)| neighbors)
+            .map(|n| n.clone())
+            .collect::<Vec<_>>();
+
+        if let Some(max_tuple) = result.iter().max_by(|(a,_), (b,_)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal)){
+            return max_tuple.0;
+        }
+        return 0.0;
+       
     }
-
-
-    /*
-     * Remove itinaries with wait time greater than countdown
-     * @param routes: Vec<Vec<Route>>
-     * @param countdown: i32
-     * @return Vec<Vec<Route>>
-     */
-    pub fn remove_itinaries_with_travel_time_greater_than_countdown(routes: Vec<Vec<Route>>, countdown: i32) -> Vec<Vec<Route>> {
-        let back = routes.iter().filter(|_itinary| _itinary.iter().map(|route| route.travel_time).sum::<i32>() < countdown).cloned().collect::<Vec<_>>();
-        back
-    }
-
 
     /*
      * Calculate the reach probability
@@ -289,7 +209,7 @@ impl Route {
      */
     pub fn calculate_reach_probability(encouters_with_hunters: i32) -> f64 {
         let mut sum = 0.0;
-        for i in 0..= u32::try_from(encouters_with_hunters).unwrap() -1 {
+        for i in 0..=u32::try_from(encouters_with_hunters).unwrap() - 1 {
             sum += f64::from(9u32.pow(i)) / f64::from(10u32.pow(i + 1));
         }
         (1.0 - sum) * 100.0
@@ -305,19 +225,5 @@ mod tests {
     fn test_load_routes_from_db() {
         let routes = Route::load_routes_from_db(&"universe.db".to_string());
         assert_eq!(routes.len(), 5);
-    }
-
-    #[test]
-    fn test_find_routes() {
-        let routes = Route::load_routes_from_db(&"universe.db".to_string());
-        let best_routes =
-            Route::find_best_routes(&routes, "Tatooine".to_string(), "Endor".to_string());
-        assert_eq!(best_routes.len(), 2);
-        assert_eq!(best_routes[0].origin, "Tatooine");
-        assert_eq!(best_routes[0].destination, "Hoth");
-        assert_eq!(best_routes[0].travel_time, 6);
-        assert_eq!(best_routes[1].origin, "Hoth");
-        assert_eq!(best_routes[1].destination, "Endor");
-        assert_eq!(best_routes[1].travel_time, 1);
     }
 }

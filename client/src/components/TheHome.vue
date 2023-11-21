@@ -22,13 +22,7 @@
 
     const getOddsFromTheRebellionDatabase = (empire: Empire) => {
         variables.empire.countdown = empire.countdown;
-        for (let i = 0; i < empire.bountyHunters.length; i++) {
-            const bountyHunter: BountyHunter = {
-            planet: empire.bountyHunters[i].planet,
-            day: empire.bountyHunters[i].day,
-            };
-        variables.empire.bountyHunters.push(bountyHunter);
-        }
+        variables.empire.bountyHunters = empire.bountyHunters;
         load()
 
     }
